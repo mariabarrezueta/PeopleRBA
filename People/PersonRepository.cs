@@ -1,66 +1,55 @@
 ﻿using SQLite;
 using People.Models;
-
+using System.Threading.Tasks;
 
 namespace People;
 
 public class PersonRepository
 {
-    string _dbPath;
+    private readonly string _dbPath;
+    private SQLiteAsyncConnection conn;
 
     public string StatusMessage { get; set; }
 
-    // TODO: Add variable for the SQLite connection
+    public PersonRepository(string dbPath)
+    {
+        _dbPath = dbPath;
+    }
 
-    private SQLiteConnection conn;
-    private void Init()
+    private async Task Init()
     {
         if (conn != null)
             return;
 
-        conn = new SQLiteConnection(_dbPath);
-        conn.CreateTable<PersonRB>();
+        conn = new SQLiteAsyncConnection(_dbPath);
+        await conn.CreateTableAsync<PersonRB>();
     }
 
-    public PersonRepository(string dbPath)
+    public async Task AddNewPerson(string name)
     {
-        _dbPath = dbPath;                        
-    }
-
-    public void AddNewPerson(string name)
-    {            
         int result = 0;
         try
         {
-            // enter this line
-            Init();
+            await Init();
 
-            // basic validation to ensure a name was entered
             if (string.IsNullOrEmpty(name))
                 throw new Exception("Valid name required");
 
-            // enter this line
-            result = conn.Insert(new PersonRB { Name = name });
-
-            // TODO: Insert the new person into the database
-            //result = 0;
-
-            StatusMessage = string.Format("{0} record(s) added (Name: {1})", result, name);
+            result = await conn.InsertAsync(new PersonRB { Name = name });
+            StatusMessage = string.Format("{0} record(s) added [Name: {1})", result, name);
         }
         catch (Exception ex)
         {
             StatusMessage = string.Format("Failed to add {0}. Error: {1}", name, ex.Message);
         }
-
     }
 
-    public List<PersonRB> GetAllPeople()
+    public async Task<List<PersonRB>> GetAllPeople()
     {
-        
         try
         {
-            Init();
-            return conn.Table<PersonRB>().ToList();
+            await Init();
+            return await conn.Table<PersonRB>().ToListAsync();
         }
         catch (Exception ex)
         {
@@ -70,3 +59,4 @@ public class PersonRepository
         return new List<PersonRB>();
     }
 }
+
